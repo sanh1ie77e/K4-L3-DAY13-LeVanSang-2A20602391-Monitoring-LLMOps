@@ -22,39 +22,48 @@ Ví dụ dưới đây minh họa mức độ cụ thể cần có. Học viên 
 
 ## Alert 1
 
-- Tên:
-- Severity:
-- Duration:
-- Kênh thông báo: Slack
-- SLI/SLO liên quan:
-- Điều kiện và thời gian duy trì:
-- Ảnh hưởng tới người dùng:
+- Tên: `HighLatencyP95`
+- Severity: `warning`
+- Duration: `5m`
+- Kênh thông báo: Slack `#k4-l3b-alerts`
+- SLI/SLO liên quan: latency P95 của event `response_sent`, SLO latency không quá 3000 ms.
+- Điều kiện và thời gian duy trì: `p95(response_sent.latency_ms) > 3000` liên tục trong 5 phút.
+- Ảnh hưởng tới người dùng: người dùng phải chờ lâu hơn trước khi nhận được câu trả lời.
 - Ba bước kiểm tra đầu tiên:
-- Mitigation tạm thời:
-- Owner:
+  1. Mở panel Latency, xác nhận P95/P99, TTFT và khoảng thời gian tăng.
+  2. Lọc `data/logs.jsonl` trong khoảng đó và chọn một `correlation_id` có `latency_ms` cao.
+  3. Mở trace cùng `correlation_id`, so sánh thời gian của `retrieval` và `generation` để xác định bước chậm.
+- Mitigation tạm thời: rollback prompt nếu sự cố bắt đầu sau khi promote; nếu retrieval chậm thì khôi phục cấu hình hoặc tắt scenario gây chậm; giảm tải khi cần.
+- Owner: `student-2A202602391`
 
 ## Alert 2
 
-- Tên:
-- Severity:
-- Duration:
-- Kênh thông báo: Slack
-- SLI/SLO liên quan:
-- Điều kiện và thời gian duy trì:
-- Ảnh hưởng tới người dùng:
+- Tên: `HighErrorRate`
+- Severity: `critical`
+- Duration: `5m`
+- Kênh thông báo: Slack `#k4-l3b-alerts`
+- SLI/SLO liên quan: tỉ lệ request thành công trong SLO `fast_successful_requests`.
+- Điều kiện và thời gian duy trì: `error_rate_pct > 2` liên tục trong 5 phút.
+- Ảnh hưởng tới người dùng: nhiều request không nhận được câu trả lời hợp lệ.
 - Ba bước kiểm tra đầu tiên:
-- Mitigation tạm thời:
-- Owner:
+  1. Mở panel Errors, xác nhận error rate và breakdown theo `error_type`.
+  2. Lọc event `request_failed` trong log và lấy một `correlation_id` đại diện.
+  3. Mở trace cùng `correlation_id`, tìm observation có trạng thái lỗi và đọc status message.
+- Mitigation tạm thời: rollback thay đổi gần nhất, tắt incident scenario nếu đang thực hành, hoặc chuyển sang fallback an toàn trong khi điều tra dependency lỗi.
+- Owner: `student-2A202602391`
 
 ## Alert 3
 
-- Tên:
-- Severity:
-- Duration:
-- Kênh thông báo: Slack
-- SLI/SLO liên quan:
-- Điều kiện và thời gian duy trì:
-- Ảnh hưởng tới người dùng:
+- Tên: `LowRetrievalSuccess`
+- Severity: `warning`
+- Duration: `5m`
+- Kênh thông báo: Slack `#k4-l3b-alerts`
+- SLI/SLO liên quan: guardrail retrieval success tối thiểu 90%.
+- Điều kiện và thời gian duy trì: `retrieval_success_rate_pct < 90` liên tục trong 5 phút.
+- Ảnh hưởng tới người dùng: câu trả lời thiếu context hoặc request thất bại khi truy xuất tài liệu.
 - Ba bước kiểm tra đầu tiên:
-- Mitigation tạm thời:
-- Owner:
+  1. Mở panel Errors và xác nhận retrieval success giảm trong khoảng thời gian nào.
+  2. Lọc log theo `tool_name=retrieval` và `tool_success=false`, lấy một `correlation_id`.
+  3. Mở trace cùng `correlation_id`, kiểm tra observation `retrieval` và so sánh với `generation`.
+- Mitigation tạm thời: kiểm tra/khôi phục nguồn dữ liệu retrieval, tắt scenario gây lỗi và dùng fallback document nếu được phép.
+- Owner: `student-2A202602391`
